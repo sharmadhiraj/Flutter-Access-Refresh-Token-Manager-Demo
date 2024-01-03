@@ -9,6 +9,10 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  http: ^1.1.2
+  jwt_decoder: ^2.0.1
+
+
 
 dev_dependencies:
   flutter_lints: ^2.0.0
