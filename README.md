@@ -1,5 +1,17 @@
 # Flutter Access Refresh Token Manager Demo
 
+<hr/>
+
+🚀 Exciting Announcement: I've developed a Flutter plugin designed to streamline the secure storage
+and efficient management of access and refresh tokens! 🗝️
+
+Explore it
+here: [Flutter Secure Token Manager](https://pub.dev/packages/flutter_secure_token_manager)
+
+If you prefer not to use the plugin, you can proceed with this example. Happy coding! 🌟
+
+<hr/>
+
 Efficiently handle access token expiration with a single request, optimizing performance during
 concurrent API calls.
 
