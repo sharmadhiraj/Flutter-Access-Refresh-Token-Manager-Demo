@@ -1,45 +1,68 @@
 # Flutter Access Refresh Token Manager Demo
 
-<hr/>
+Handle access token expiration with a single refresh request, even when many API calls run
+concurrently. Calls that find an expired token wait for the refresh already in progress instead of
+starting their own.
 
-🚀 Exciting Announcement: I've developed a Flutter plugin designed to streamline the secure storage
-and efficient management of access and refresh tokens! 🗝️
+## Prefer a package?
 
-Explore it
-here: [Flutter Secure Token Manager](https://pub.dev/packages/flutter_secure_token_manager)
+This pattern is published as a plugin:
+[flutter_secure_token_manager](https://pub.dev/packages/flutter_secure_token_manager). It stores
+tokens securely and manages refresh for you. Use this demo if you want the code in your own project
+and full control over it.
 
-If you prefer not to use the plugin, you can proceed with this example. Happy coding! 🌟
+## Implementation Guide
 
-<hr/>
+1. Add the dependencies:
 
-Efficiently handle access token expiration with a single request, optimizing performance during
-concurrent API calls.
+   ```yaml
+   dependencies:
+     flutter_secure_storage: ^11.2.0
+     http: ^1.6.0
+     jwt_decoder: ^2.0.1
+   ```
 
-### Demo
+2. Copy these into your project:
+    - `lib/auth/token_manager.dart`: refresh logic and request de-duplication
+    - `lib/auth/token_storage.dart`: persistence (`SecureTokenStorage` uses
+      `flutter_secure_storage`)
+    - `lib/auth/session_expired_exception.dart`
+    - `lib/models/token.dart`: adjust the fields and `fromJson` if your token response differs
 
-![Demo Gif](demo.gif)
+3. Create the manager with a `refresher`, a function that exchanges the refresh token for a new
+   `Token`. Throw an `ApiException` with the HTTP status on failure (see `lib/api/auth_api.dart`).
 
-### Implementation Guide
+   ```dart
+   final tokenManager = TokenManager(
+     refresher: authApi.getNewAccessToken,
+     storage: const SecureTokenStorage(),
+   );
+   ```
 
-1. Copy the `TokenManager` class into your project.
+4. On app start, call `await tokenManager.load()` to restore a saved session. After a successful
+   login, call `await tokenManager.setToken(token)`. On logout, call `await tokenManager.clear()`.
 
-2. If your token structure differs, modify the `Token` class within the `TokenManager` according to
-   your specific requirements.
+5. Attach the token to every authenticated request. Any HTTP client works (http, dio, others):
 
-3. Update the `isTokenExpired` method if your authentication process varies. This method checks if
-   the current token is expired.
+   ```dart
+   headers: {"Authorization": "Bearer ${await tokenManager.getAccessToken()}"}
+   ```
 
-4. Modify the `renewAccessToken` method to align with your token renewal logic. This method is
-   invoked when the token expires, and a new token needs to be obtained.
+   `getAccessToken` refreshes the token first if it is expired. If the refresh token is rejected
+   (400/401), the session is cleared and `SessionExpiredException` is thrown: catch it and send the
+   user to login.
 
-5. Ensure to call the `setToken` method after a successful login or when the app is opened (if the
-   user has an active session). This initializes the token manager with the user's current token.
+6. If your tokens are not JWTs, change `isTokenExpired` in `TokenManager`.
 
-6. Include the following line in the headers of your API call method to attach the authorization
-   token:
+See `lib/api/api_client.dart` for a complete request example and `test/token_manager_test.dart` for
+the concurrent refresh behavior.
 
-   `"Authorization": "Bearer ${await TokenManager.instance.getAccessToken()}"`
+## Run the demo
 
-   This ensures that the authorization header is added to your API calls requiring authentication.
-   It doesn't matter which API client you use (http, dio, or others); make sure this header is
-   included in the request.
+```
+flutter pub get
+flutter run
+```
+
+Tap **Login**, then **Expire token and send requests**. The activity timeline shows a single refresh
+with the other requests waiting on it.
